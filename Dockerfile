@@ -19,7 +19,13 @@ FROM base as build
 
 # Install packages needed to build gems
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential git libpq-dev libvips pkg-config
+    apt-get install --no-install-recommends -y build-essential git libpq-dev libvips pkg-config curl gnupg2 ca-certificates \
+    dirmngr apt-transport-https lsb-release
+
+# Install Node.js (LTS) and yarn
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
+    corepack enable && corepack prepare yarn@stable --activate
 
 # Install application gems
 COPY Gemfile Gemfile.lock ./
@@ -31,13 +37,16 @@ RUN bundle install && \
 COPY . .
 
 # Adicionar permissões de execução aos arquivos bin
-RUN chmod +x bin/rails bin/rake bin/setup
+RUN chmod +x bin/*
+
+# Install JS dependencies and precompile assets
+RUN yarn install --check-files || true
 
 # Precompile bootsnap code for faster boot times
 RUN bundle exec bootsnap precompile app/ lib/
 
 # Precompiling assets for production without requiring secret RAILS_MASTER_KEY
-RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
+RUN SECRET_KEY_BASE_DUMMY=1 RAILS_ENV=production ./bin/rails assets:precompile
 
 
 # Final stage for app image
