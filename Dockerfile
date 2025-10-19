@@ -30,6 +30,9 @@ RUN bundle install && \
 # Copy application code
 COPY . .
 
+# Adicionar permissões de execução aos arquivos bin
+RUN chmod +x bin/rails bin/rake bin/setup
+
 # Precompile bootsnap code for faster boot times
 RUN bundle exec bootsnap precompile app/ lib/
 
